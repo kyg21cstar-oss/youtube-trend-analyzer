@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 
 # API 설정
-API_KEY = 'AIzaSyCAKT_zkg8_QMYdC5k4GBzGyTUGhJYywiA' 
+API_KEY = 'AIzaSyCAKT_zkg8_QMYdC5k4GBzGyTUGhJYywiA'
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
 st.set_page_config(page_title="유튜브 프로 분석기", layout="wide")
@@ -48,4 +48,31 @@ if st.button("심층 분석 시작! ✨"):
             v_info = v_res['items'][0]
             title = v_info['snippet']['title']
             desc = v_info['snippet']['description']
-            views = int(v_info
+            views = int(v_info['statistics'].get('viewCount', 0))
+            thumb = v_info['snippet']['thumbnails']['high']['url'] # 더 고화질로 변경
+
+            if views >= min_views:
+                st.divider()
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    st.image(thumb, use_container_width=True)
+                    st.write(f"🔗 [영상 바로가기](https://www.youtube.com/watch?v={v_id})")
+                    st.metric("조회수", f"{views:,}회")
+
+                with col2:
+                    st.subheader(title)
+                    with st.expander("📝 동영상 설명 (줄거리) 보기"):
+                        st.text(desc) # 줄바꿈 유지를 위해 text로 표시
+                    
+                    # 3. 인기 댓글 TOP 5 가져오기
+                    try:
+                        c_res = youtube.commentThreads().list(
+                            part='snippet', videoId=v_id, maxResults=5, order='relevance'
+                        ).execute()
+                        st.write("💬 **인기 댓글 TOP 5**")
+                        for c in c_res['items']:
+                            comment = c['snippet']['topLevelComment']['snippet']['textDisplay']
+                            st.caption(f"• {comment}")
+                    except:
+                        st.write("⚠️ 댓글 기능을 지원하지 않거나 댓글이 없는 영상입니다.")
